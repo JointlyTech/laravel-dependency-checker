@@ -16,6 +16,10 @@
     "dependency",
     "checker"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/JointlyTech/laravel-dependency-checker.git"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
