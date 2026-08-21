@@ -92,7 +92,7 @@ Quote the prefixes with single quotes: in double-quoted YAML strings, `\` is an 
 
 ## What counts as a dependency
 
-Only `use` statements outside of any type declaration are counted, in every form: plain, aliased (`use A\B as C;` counts as `A\B`), grouped (`use A\{B, C};` counts as two), and `use function` / `use const`. A `use` inside a class body imports a trait, not a dependency, and is ignored — as is the `use` clause of a closure. Only `.php` files are analyzed.
+Only `use` statements outside of any type declaration are counted, in every form: plain, aliased (`use A\B as C;` counts as `A\B`), grouped (`use A\{B, C};` counts as two), and `use function` / `use const`. A `use` inside a class body imports a trait, not a dependency, and is ignored — as is the `use` clause of a closure. Only `.php` files are analyzed, and directories whose name starts with a dot — `.claude`, `.git` — are skipped along with `vendor` and `node_modules`. Any of them can hold a whole second copy of the project (a git worktree, a vendored package): traversing them is slow and the files in there are not the ones under review. The folder a check points at is always traversed, even if its own name is one of those.
 
 ## Thresholds and baselines
 

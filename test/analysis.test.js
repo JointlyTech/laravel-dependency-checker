@@ -16,9 +16,9 @@ function fixture(files) {
   return root;
 }
 
-const run = (root, ruleset, config = {}) => analyze({
+const run = (root, ruleset, config = {}, folder = './app/Services') => analyze({
   root,
-  folder: './app/Services',
+  folder,
   ruleSet: ruleset.map(parseRule),
   config: {
     threshold: 100,
@@ -94,4 +94,25 @@ test('an empty folder satisfies the threshold', () => {
   const root = fixture({ 'app/Services/.gitkeep': '' });
 
   assert.equal(run(root, ['all eq 0']).thresholdSatisfied, true);
+});
+
+test('does not descend into dot directories, vendor or node_modules', () => {
+  const root = fixture({
+    'app/Services/FooService.php': '<?php\n',
+    'app/Services/.claude/worktrees/wip/app/Services/BarService.php': '<?php\nuse App\\Models\\User;\n',
+    'app/Services/vendor/package/src/BazService.php': '<?php\nuse App\\Models\\User;\n',
+    'app/Services/node_modules/thing/QuxService.php': '<?php\nuse App\\Models\\User;\n',
+    'app/Services/Wallet/CreditService.php': '<?php\n'
+  });
+
+  const result = run(root, ['models eq 0']);
+
+  assert.equal(result.fileAmount, 2);
+  assert.equal(result.thresholdSatisfied, true);
+});
+
+test('analyzes the root of the check even when its own name is an ignored one', () => {
+  const root = fixture({ 'vendor/jointly/package/FooService.php': '<?php\n' });
+
+  assert.equal(run(root, ['all eq 0'], {}, './vendor/jointly/package').fileAmount, 1);
 });
