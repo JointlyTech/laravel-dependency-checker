@@ -7,7 +7,7 @@ export function *traverse(directory) {
     if (fs.statSync(path).isDirectory()) {
       yield *traverse(path)
     }
-    else {
+    else if (path.endsWith('.php')) {
       yield {
         filePath: path,
         content: fs.readFileSync(path, 'utf8'),

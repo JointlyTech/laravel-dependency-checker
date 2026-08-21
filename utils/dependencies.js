@@ -1,37 +1,70 @@
+const CLASS_DECLARATION = /^[ \t]*(?:(?:abstract|final|readonly)[ \t]+)*(?:class|interface|trait|enum)[ \t]+\w/m;
+const IMPORT = /^[ \t]*use[ \t\r\n]+([^;{()$]+?)(?:\{([^}]*)\})?[ \t\r\n]*;/gm;
+
+const BUILTIN_KINDS = {
+  controllers: ['App\\Http\\Controllers'],
+  services: ['App\\Services'],
+  models: ['App\\Models']
+};
+
+// A `use` inside a class body imports a trait, not a dependency, and `use ($var)`
+// inside a closure is not an import at all. Both only ever appear after the type
+// declaration, so everything from there on is discarded before matching.
+function importSection(content) {
+  const declaration = content.match(CLASS_DECLARATION);
+  return declaration ? content.slice(0, declaration.index) : content;
+}
+
+function stripSymbolKeyword(statement) {
+  return statement.replace(/^(?:function|const)[ \t\r\n]+/, '');
+}
+
+function stripAlias(statement) {
+  return statement.replace(/[ \t\r\n]+as[ \t\r\n]+\w+$/, '');
+}
+
+function normalize(statement) {
+  return stripAlias(stripSymbolKeyword(statement.trim())).replace(/^\\/, '').trim();
+}
+
 export function extractDependencies(content, exclusions) {
   const dependencies = [];
-  const regex = /use ([\w\\]+);/g;
   let match;
-  while (match = regex.exec(content)) {
-    if (exclusions.includes(match[1])) {
-      continue;
+  IMPORT.lastIndex = 0;
+  while ((match = IMPORT.exec(importSection(content)))) {
+    const [, head, group] = match;
+    const names = group === undefined
+      ? [normalize(head)]
+      : group.split(',').map(name => normalize(head) + normalize(name)).filter(name => !name.endsWith('\\'));
+
+    for (const name of names) {
+      if (name === '' || exclusions.includes(name)) {
+        continue;
+      }
+      dependencies.push(name);
     }
-    dependencies.push(match[1]);
   }
   return dependencies;
 }
 
+function belongsTo(dependency, prefixes) {
+  return prefixes.some(prefix => dependency === prefix || dependency.startsWith(`${prefix}\\`));
+}
 
-export function catalogDependencies(deps) {
-  const dependencies = {
-    controllers: deps.filter(dep => dep.startsWith('App\\Http\\Controllers\\')),
-    services: deps.filter(dep => dep.startsWith('App\\Services\\')),
-    models: deps.filter(dep => dep.startsWith('App\\Models\\')),
-    other_app: [],
-    other_all: [],
-    all: deps
+export function catalogDependencies(deps, customKinds = {}) {
+  const dependencies = { all: deps };
+
+  for (const [kind, prefixes] of Object.entries({ ...BUILTIN_KINDS, ...customKinds })) {
+    dependencies[kind] = deps.filter(dep => belongsTo(dep, prefixes));
   }
 
-  for (const dep of deps) {
-    if (dep.startsWith('App\\')) {
-      if (!dependencies.services.includes(dep) && !dependencies.models.includes(dep)) {
-        dependencies.other_app.push(dep)
-      }
-    }
-    else {
-      dependencies.other_all.push(dep)
-    }
-  }
+  const categorised = Object.values(BUILTIN_KINDS).flat();
+  dependencies.other_app = deps.filter(dep => dep.startsWith('App\\') && !belongsTo(dep, categorised));
+  dependencies.other_all = deps.filter(dep => !dep.startsWith('App\\'));
 
-  return dependencies
+  return dependencies;
+}
+
+export function knownKinds(customKinds = {}) {
+  return [...Object.keys(BUILTIN_KINDS), ...Object.keys(customKinds), 'other_app', 'other_all', 'all'];
 }
