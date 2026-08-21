@@ -4,7 +4,9 @@
   "description": "A simple Laravel dependency checker",
   "main": "./bin/index.js",
   "type": "module",
-  "bin": "./bin/index.js",
+  "bin": {
+    "laravel-dependency-checker": "bin/index.js"
+  },
   "scripts": {
     "release:common": "git push --follow-tags origin main && npm publish --access public",
     "release:patch": "npm version patch && npm run release:common",
