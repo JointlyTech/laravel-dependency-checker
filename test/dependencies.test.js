@@ -75,6 +75,13 @@ test('honours dependency exclusions', () => {
   );
 });
 
+test('supports a wildcard at the end, the start or both ends of an exclusion', () => {
+  const content = '<?php\nuse Illuminate\\Http\\Request;\nuse App\\Http\\Controllers\\Controller;\nuse App\\Models\\User;\n';
+  assert.deepEqual(extractDependencies(content, ['Illuminate\\Http\\*']), ['App\\Http\\Controllers\\Controller', 'App\\Models\\User']);
+  assert.deepEqual(extractDependencies(content, ['*\\Controller']), ['Illuminate\\Http\\Request', 'App\\Models\\User']);
+  assert.deepEqual(extractDependencies(content, ['*\\Http\\*']), ['App\\Models\\User']);
+});
+
 test('excludes an aliased dependency by its fully qualified name', () => {
   assert.deepEqual(
     extractDependencies('<?php\nuse App\\Constants\\CoreConstants as C;\n', ['App\\Constants\\CoreConstants']),

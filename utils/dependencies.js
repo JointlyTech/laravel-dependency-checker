@@ -27,6 +27,17 @@ function normalize(statement) {
   return stripAlias(stripSymbolKeyword(statement.trim())).replace(/^\\/, '').trim();
 }
 
+function matchesExclusion(name, pattern) {
+  const startsOpen = pattern.startsWith('*');
+  const endsOpen = pattern.length > 1 && pattern.endsWith('*');
+  const literal = pattern.slice(startsOpen ? 1 : 0, endsOpen ? -1 : undefined);
+
+  if (startsOpen && endsOpen) return name.includes(literal);
+  if (startsOpen) return name.endsWith(literal);
+  if (endsOpen) return name.startsWith(literal);
+  return name === literal;
+}
+
 export function extractDependencies(content, exclusions) {
   const dependencies = [];
   let match;
@@ -38,7 +49,7 @@ export function extractDependencies(content, exclusions) {
       : group.split(',').map(name => normalize(head) + normalize(name)).filter(name => !name.endsWith('\\'));
 
     for (const name of names) {
-      if (name === '' || exclusions.includes(name)) {
+      if (name === '' || exclusions.some(pattern => matchesExclusion(name, pattern))) {
         continue;
       }
       dependencies.push(name);

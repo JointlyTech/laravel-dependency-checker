@@ -94,6 +94,10 @@ Quote the prefixes with single quotes: in double-quoted YAML strings, `\` is an 
 
 Only `use` statements outside of any type declaration are counted, in every form: plain, aliased (`use A\B as C;` counts as `A\B`), grouped (`use A\{B, C};` counts as two), and `use function` / `use const`. A `use` inside a class body imports a trait, not a dependency, and is ignored — as is the `use` clause of a closure. Only `.php` files are analyzed, and directories whose name starts with a dot — `.claude`, `.git` — are skipped along with `vendor` and `node_modules`. Any of them can hold a whole second copy of the project (a git worktree, a vendored package): traversing them is slow and the files in there are not the ones under review. The folder a check points at is always traversed, even if its own name is one of those.
 
+## Wildcards in dependency exclusions
+
+Entries under `exclusions.dependencies` are matched against the fully qualified name. A `*` at the start, at the end, or at both ends turns the entry into an "ends with", "starts with" or "contains" match: `Illuminate\Http\*` excludes everything under that namespace, `*\Controller` excludes any class named `Controller`. A `*` in the middle of an entry is not supported.
+
 ## Thresholds and baselines
 
 A threshold below 100 means "this percentage of files must comply", not "these files may not comply": it doesn't record *which* files are currently failing. Two consequences are worth knowing before picking a value:
